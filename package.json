@@ -1,6 +1,6 @@
 {
   "name": "homebridge-frigidaire",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "homebridge plugin for Frigidaire connected appliances",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,9 @@
     "frigidaire",
     "homebridge-plugin"
   ],
+  "dependencies": {
+    "frigidaire": "git+https://github.com/karlg100/frigidaire.git"
+  },
   "author": "Brian Lopez",
   "license": "MIT",
   "bugs": {

@@ -1,5 +1,7 @@
 'use strict';
 
+var Frigidaire = require('frigidaire');
+
 var Service, Characteristic;
 
 function fahrenheitToCelsius(temperature) {
@@ -22,28 +24,48 @@ function FrigidairePlatform(log, config) {
   this.log = log;
 
   this.config = config;
+
+  this.pollingInterval = this.config.pollingInterval || 10;
+
+  this.AC = new Frigidaire({
+    username: this.config.username, 
+    password: this.config.password
+  });
 }
 
 FrigidairePlatform.prototype = {
   accessories: function (callback) {
-    var airConditioner = new FrigidaireAirConditionerAccessory(this.log);
-
-    callback([airConditioner]);
+    var self = this;
+    var airConditioners = [];
+    self.AC.getDevices(function(err, result) {
+      if (err) return console.error(err);
+      console.log('Got Devices');
+      console.log(result);
+      result.forEach(function(device) {
+        if (device['APPLIANCE_TYPE_DESC'] == 'Air Conditioner') {
+          console.log('craeting accessory for AC unit labeled : '+device['LABEL']);
+          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log));
+        }
+      });
+      callback(airConditioners);
+    });
   },
 };
 
-function FrigidaireAirConditionerAccessory(log) {
+function FrigidaireAirConditionerAccessory(deviceInfo, AC, log) {
   this.log = log;
+  this.AC = AC;
 
   // Characteristic.TargetHeatingCoolingState.OFF
   // Characteristic.TargetHeatingCoolingState.HEAT
   // Characteristic.TargetHeatingCoolingState.AUTO
   // Characteristic.TargetHeatingCoolingState.COOL
 
-  this.currentCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
+  //this.currentCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
+  this.currentCoolingState = undefined;
   this.targetCoolingState  = this.currentHeatingCoolingState;
 
-  this.currentTemperature  = 72.0;
+  this.currentTemperature  = undefined;
   this.targetTemperature   = this.currentTemperature;
 
   // Characteristic.TemperatureDisplayUnits.FAHRENHEIT
@@ -52,17 +74,20 @@ function FrigidaireAirConditionerAccessory(log) {
   this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
 
   this.fanSpeed = 0;
+  this.fanPending = false; // need to change this to a timer, so the last value always gets executed after the current pending value is completed.
 
-  // TODO: look these up dynamically?
-  this.model        = "FCRC0844S10";
-  this.serialNumber = "";
-  this.name         = "Frigidaire Air Conditioner";
+  this.applianceId  = deviceInfo['APPLIANCE_ID'];
+  this.make         = deviceInfo['MAKE'];
+  this.model        = deviceInfo['MODEL'];
+  this.serialNumber = deviceInfo['SERIAL'];
+  this.name         = deviceInfo['LABEL'];
+  this.firmware     = deviceInfo['NIU_VERSION'];
 }
 
 FrigidaireAirConditionerAccessory.prototype = {
   // Start
   identify: function(callback) {
-    this.log("Identify requested!");
+    this.log("Identify requested, but we have no way of doing this!");
 
     callback(null);
   },
@@ -89,65 +114,148 @@ FrigidaireAirConditionerAccessory.prototype = {
   },
 
   getTargetHeatingCoolingState: function(callback) {
-    this.log("getTargetHeatingCoolingState: ", this.targetCoolingState);
+    var self = this;
 
-    callback(null, this.targetCoolingState);
+    this.AC.getMode(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
+      if (result == self.AC.MODE_OFF) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
+      else if (result == self.AC.MODE_ECON) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+      else if (result == self.AC.MODE_COOL) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
+      else if (result == self.AC.MODE_FAN) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
+      self.currentCoolingState = self.targetCoolingState;
+
+      self.log("getTargetHeatingCoolingState: ", self.targetCoolingState);
+      callback(null, self.targetCoolingState);
+    });
+ 
   },
 
   setTargetHeatingCoolingState: function(value, callback) {
-    this.log("setTargetHeatingCoolingState from/to: ", this.targetCoolingState, value);
+    var self = this;
 
-    this.targetCoolingState = value;
+    if (value == Characteristic.TargetHeatingCoolingState.OFF) var newMode = self.AC.MODE_OFF;
+    else if (value == Characteristic.TargetHeatingCoolingState.AUTO) var newMode = self.AC.MODE_ECON;
+    else if (value == Characteristic.TargetHeatingCoolingState.COOL) var newMode = self.AC.MODE_COOL;
+    else if (value == Characteristic.TargetHeatingCoolingState.HEAT) var newMode = self.AC.MODE_FAN;
 
-    callback(null);
+    this.AC.mode(self.applianceId, newMode, function(err, result) {
+      if (err) return console.error(err);
+      self.log("setTargetHeatingCoolingState from/to: ", self.targetCoolingState, value);
+      self.targetCoolingState = value;
+      self.currentCoolingState = self.targetCoolingState;
+      callback(null);
+    });
   },
 
   getCurrentTemperature: function(callback) {
-    this.log("getCurrentTemperature: ", this.currentTemperature);
-
-    callback(null, this.currentTemperature);
+    var self = this;
+    this.AC.getRoomTemp(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = result;
+      self.log("getCurrentTemperature: ", self.currentTemperature);
+      callback(null, self.currentTemperature);
+    });
   },
 
   getTargetTemperature: function(callback) {
-    this.log("getTargetTemperature: ", this.targetTemperature);
-
-    callback(null, this.targetTemperature);
+    var self = this;
+    this.AC.getTemp(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = result;
+      self.log("getTargetTemperature: ", self.targetTemperature);
+      callback(null, self.targetTemperature);
+    });
   },
 
   setTargetTemperature: function(value, callback) {
-    this.log("setTargetTemperature to: ", value);
-
-    this.targetTemperature = value;
-
-    callback(null);
+    var self = this;
+    this.AC.setTemp(self.applianceId, celsiusToFahrenheit(value), function(err, result) {
+      if (err) return console.error(err);
+      self.targetTemperature = value;
+      self.log("setTargetTemperature to: ", value);
+      callback(null);
+    });
   },
 
   getTemperatureDisplayUnits: function(callback) {
-    this.log("getTemperatureDisplayUnits: ", this.temperatureDisplayUnits);
-
-    callback(null, this.temperatureDisplayUnits);
+    var self = this;
+    this.AC.getUnit(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
+      if (result == self.AC.FAHRENHEIT) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
+      else if (result == self.AC.CELSIUS) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+      self.log("getTemperatureDisplayUnits: ", self.temperatureDisplayUnits);
+      return callback(null, self.temperatureDisplayUnits);
+    });
   },
 
   setTemperatureDisplayUnits: function(value, callback) {
-    this.log("setTemperatureDisplayUnits from %s to %s", this.temperatureDisplayUnits, value);
+    var self = this;
+    if (value == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) var newValue = self.AC.FAHRENHEIT;
+    else if (value == Characteristic.TemperatureDisplayUnits.CELSIUS) var newValue = self.AC.CELSIUS;
 
-    this.temperatureDisplayUnits = value;
-
-    callback(null);
+    self.AC.changeUnits(self.applianceId, newValue,function(err, result) {
+      if (err) return console.error(err);
+      self.temperatureDisplayUnits = value;
+      self.log("setTemperatureDisplayUnits from %s to %s", self.temperatureDisplayUnits, value);
+      return callback(null);
+    });
   },
 
   getFanSpeed: function(callback) {
-    this.log("getFanSpeed: ", this.fanSpeed);
+    var self = this;
+    this.AC.getFanMode(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
 
-    callback(null, Math.floor(this.fanSpeed * 100));
+      // we only have 3 fan speeds, plus auto.
+      // auto = 100%
+      // high = 67-99%
+      // med  = 34-66%
+      // low  = 0-33%
+      // off? = 0% - we may need to add this later, if there's no way to turn off the unit using other controls
+	    //
+      self.log('current fan mode is '+result);
+      if(result == self.AC.FANMODE_AUTO)
+        self.fanSpeed = 100;
+      else if(result == self.AC.FANMODE_LOW) {
+        if (self.fanSpeed > 33) self.fanSpeed = 33;
+        if (self.fanSpeed <= 0) self.fanSpeed = 1;
+      } else if(result == self.AC.FANMODE_MED) {
+        if (self.fanSpeed > 66) self.fanSpeed = 66;
+        if (self.fanSpeed <= 33) self.fanSpeed = 34;
+      } else if(result == self.AC.FANMODE_HIGH) {
+        if (self.fanSpeed >= 100) self.fanSpeed = 99;
+        if (self.fanSpeed <= 66) self.fanSpeed = 67;
+      }
+
+      self.log("getFanSpeed: ", self.fanSpeed);
+      callback(null, self.fanSpeed);
+    });
   },
 
   setFanSpeed: function(value, callback) {
-    this.log("setFanSpeed: ", value);
+    var self = this;
+    var newMode;
+    if (this.fanPending)
+      callback(null);
+    else {
+      this.fanPending = true;
+      if(value == 100) newMode =  this.AC.FANMODE_AUTO;
+      else if (value >= 0 && value <= 33) newMode = this.AC.FANMODE_LOW;
+      else if (value > 33 && value <= 66) newMode = this.AC.FANMODE_MED;
+      else if (value > 66 && value < 100) newMode = this.AC.FANMODE_HIGH;
+this.log('newMode = '+newMode);
+  
+      this.AC.fanMode(self.applianceId, newMode, function(err, result) {
+        if (err) return console.error(err);
+        self.log('Turned fan to '+self.fanSpeed);
 
-    this.fanSpeed = value / 100;
-
-    callback(null);
+        self.fanSpeed = value;
+        self.fanPending = false;
+        callback(null);
+      });
+    }
   },
 
   // Optional
@@ -173,8 +281,9 @@ FrigidaireAirConditionerAccessory.prototype = {
     var informationService = new Service.AccessoryInformation();
 
     informationService
-      .setCharacteristic(Characteristic.Manufacturer, "Frigidaire")
+      .setCharacteristic(Characteristic.Manufacturer, this.make)
       .setCharacteristic(Characteristic.Model, this.model)
+      .setCharacteristic(Characteristic.FirmwareRevision, this.firmware)
       .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
     var thermostatService = new Service.Thermostat(this.name);
