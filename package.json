@@ -1,7 +1,7 @@
 {
   "name": "homebridge-frigidaire",
   "version": "1.0.1",
-  "description": "homebridge plugin for Frigidaire connected appliances",
+  "description": "homebridge plugin for Frigidaire/Electrolux connected appliances",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/brianmario/homebridge-frigidaire.git"
+    "url": "git+https://github.com/karlg100/homebridge-frigidaire.git"
   },
   "keywords": [
     "homebridge",
@@ -22,10 +22,10 @@
   "dependencies": {
     "frigidaire": "git+https://github.com/karlg100/frigidaire.git"
   },
-  "author": "Brian Lopez",
+  "author": "Karl Grindley",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/brianmario/homebridge-frigidaire/issues"
+    "url": "https://github.com/karlg100/homebridge-frigidaire/issues"
   },
-  "homepage": "https://github.com/brianmario/homebridge-frigidaire#readme"
+  "homepage": "https://github.com/karlg100/homebridge-frigidaire#readme"
 }

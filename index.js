@@ -82,6 +82,8 @@ function FrigidaireAirConditionerAccessory(deviceInfo, AC, log) {
   this.serialNumber = deviceInfo['SERIAL'];
   this.name         = deviceInfo['LABEL'];
   this.firmware     = deviceInfo['NIU_VERSION'];
+
+  this.AC.scheduleUpdates(this.applianceId, function() {});
 }
 
 FrigidaireAirConditionerAccessory.prototype = {
