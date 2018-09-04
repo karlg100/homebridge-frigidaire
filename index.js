@@ -25,11 +25,12 @@ function FrigidairePlatform(log, config) {
 
   this.config = config;
 
-  this.pollingInterval = this.config.pollingInterval || 10;
+  this.pollingInterval = this.config.pollingInterval || 10000;
 
   this.AC = new Frigidaire({
     username: this.config.username, 
-    password: this.config.password
+    password: this.config.password,
+    pollingInterval: this.pollingInterval
   });
 }
 
@@ -44,7 +45,7 @@ FrigidairePlatform.prototype = {
       result.forEach(function(device) {
         if (device['APPLIANCE_TYPE_DESC'] == 'Air Conditioner') {
           console.log('craeting accessory for AC unit labeled : '+device['LABEL']);
-          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log));
+          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log, self.pollingInterval));
         }
       });
       callback(airConditioners);
@@ -52,9 +53,11 @@ FrigidairePlatform.prototype = {
   },
 };
 
-function FrigidaireAirConditionerAccessory(deviceInfo, AC, log) {
+function FrigidaireAirConditionerAccessory(deviceInfo, AC, log, pollingInterval) {
   this.log = log;
   this.AC = AC;
+  this.pollingInterval = pollingInterval;
+  this.log('pollingInterval is set to '+this.pollingInterval);
 
   // Characteristic.TargetHeatingCoolingState.OFF
   // Characteristic.TargetHeatingCoolingState.HEAT
@@ -83,7 +86,9 @@ function FrigidaireAirConditionerAccessory(deviceInfo, AC, log) {
   this.name         = deviceInfo['LABEL'];
   this.firmware     = deviceInfo['NIU_VERSION'];
 
-  this.AC.scheduleUpdates(this.applianceId, function() {});
+  this.AC.scheduleUpdates(this.applianceId, function () {});
+  var self = this;
+  this.updateTimer = setInterval(function () { self.updateAll(); }, this.pollingInterval/2);
 }
 
 FrigidaireAirConditionerAccessory.prototype = {
@@ -258,6 +263,19 @@ this.log('newMode = '+newMode);
         callback(null);
       });
     }
+  },
+
+  pushUpdate: function(characteristic, err, value) {
+    
+  },
+
+  updateAll: function() {
+    this.getTemperatureDisplayUnits(function () {});
+    this.getCurrentHeatingCoolingState(function () {});
+    this.getTargetHeatingCoolingState(function () {});
+    this.getCurrentTemperature(function () {});
+    this.getTargetTemperature(function () {});
+    this.getFanSpeed(function () {});
   },
 
   // Optional
