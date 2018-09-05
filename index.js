@@ -83,7 +83,7 @@ function FrigidaireAirConditionerAccessory(deviceInfo, AC, log, pollingInterval)
   this.make         = deviceInfo['MAKE'];
   this.model        = deviceInfo['MODEL'];
   this.serialNumber = deviceInfo['SERIAL'];
-  this.name         = deviceInfo['LABEL'];
+  this.name         = deviceInfo['LABEL'] || 'AC Unit';
   this.firmware     = deviceInfo['NIU_VERSION'];
 
   this.AC.scheduleUpdates(this.applianceId, function () {});
