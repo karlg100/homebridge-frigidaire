@@ -16,11 +16,11 @@
   },
   "keywords": [
     "homebridge",
-    "frigidaire": "^1.0.1",
+    "frigidaire",
     "homebridge-plugin"
   ],
   "dependencies": {
-    "frigidaire": "git+https://github.com/karlg100/frigidaire.git"
+    "frigidaire": "^1.0.1"
   },
   "author": {
     "name": "Brian Lopez"
