@@ -162,8 +162,8 @@ FrigidaireAirConditionerAccessory.prototype = {
     this.AC.getRoomTemp(self.applianceId, function(err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
-      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = result;
-      self.log("getCurrentTemperature: ", self.currentTemperature);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = fahrenheitToCelsius(result);
+      self.log("getCurrentTemperature: %s -> %s", result, self.currentTemperature);
       callback(null, self.currentTemperature);
     });
   },
@@ -173,8 +173,8 @@ FrigidaireAirConditionerAccessory.prototype = {
     this.AC.getTemp(self.applianceId, function(err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
-      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = result;
-      self.log("getTargetTemperature: ", self.targetTemperature);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = fahrenheitToCelsius(result);
+      self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
       callback(null, self.targetTemperature);
     });
   },
@@ -204,11 +204,11 @@ FrigidaireAirConditionerAccessory.prototype = {
     var self = this;
     if (value == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) var newValue = self.AC.FAHRENHEIT;
     else if (value == Characteristic.TemperatureDisplayUnits.CELSIUS) var newValue = self.AC.CELSIUS;
+    this.temperatureDisplayUnits = value;
 
-    self.AC.changeUnits(self.applianceId, newValue,function(err, result) {
+    self.AC.changeUnits(self.applianceId, newValue, function(err, result) {
       if (err) return console.error(err);
-      self.temperatureDisplayUnits = value;
-      self.log("setTemperatureDisplayUnits from %s to %s", self.temperatureDisplayUnits, value);
+      self.log("setTemperatureDisplayUnits - %s -> %s", self.temperatureDisplayUnits, value);
       return callback(null);
     });
   },
@@ -328,6 +328,10 @@ this.log('newMode = '+newMode);
 
     thermostatService
       .getCharacteristic(Characteristic.TargetTemperature)
+      .setProps({
+        minValue: 15.5,
+        maxValue: 32
+      })
       .on('get', this.getTargetTemperature.bind(this))
       .on('set', this.setTargetTemperature.bind(this));
 
