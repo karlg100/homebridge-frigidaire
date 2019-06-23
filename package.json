@@ -1,6 +1,6 @@
 {
   "name": "homebridge-frigidaire",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "homebridge plugin for Frigidaire connected appliances",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "homebridge-plugin"
   ],
   "dependencies": {
-    "frigidaire": "^1.0.1"
+    "frigidaire": "^1.0.2"
   },
   "author": {
     "name": "Brian Lopez"
@@ -32,7 +32,7 @@
   "homepage": "https://github.com/karlg100/homebridge-frigidaire#readme",
   "gitHead": "95e39191c7098d15a450dc5698b32915fd646695",
   "readme": "ERROR: No README data found!",
-  "_id": "homebridge-frigidaire@1.0.1",
+  "_id": "homebridge-frigidaire@1.0.2",
   "_shasum": "f67a4562bb6fcab9fc0e9834e5d94699d3ad51ce",
   "_from": "."
 }

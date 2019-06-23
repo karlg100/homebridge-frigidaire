@@ -30,7 +30,8 @@ function FrigidairePlatform(log, config) {
   this.AC = new Frigidaire({
     username: this.config.username, 
     password: this.config.password,
-    pollingInterval: this.pollingInterval
+    pollingInterval: this.pollingInterval, 
+    disableTemp: this.config.disableTemp || false
   });
 }
 
@@ -156,6 +157,8 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getCurrentTemperature: function(callback) {
     var self = this;
+    if ( this.disableTemp ) 
+      callback(null, undefined);
     this.AC.getRoomTemp(self.applianceId, function(err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
