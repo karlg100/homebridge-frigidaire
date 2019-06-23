@@ -88,7 +88,7 @@ function FrigidaireAirConditionerAccessory(deviceInfo, AC, log, pollingInterval)
 
   this.AC.scheduleUpdates(this.applianceId, function () {});
   var self = this;
-  this.updateTimer = setInterval(function () { self.updateAll(); }, this.pollingInterval/2);
+  this.updateTimer = setInterval(function () { self.updateAll(); }, this.pollingInterval);
 }
 
 FrigidaireAirConditionerAccessory.prototype = {
