@@ -1,5 +1,6 @@
 'use strict';
 
+var debug = require('debug')('homebridge-frigidaire');
 var Frigidaire = require('frigidaire');
 
 var Service, Characteristic;
@@ -21,7 +22,7 @@ module.exports = function(homebridge){
 };
 
 function FrigidairePlatform(log, config) {
-  this.log = log;
+  this.log = debug;
 
   this.config = config;
 
@@ -208,7 +209,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
     self.AC.changeUnits(self.applianceId, newValue, function(err, result) {
       if (err) return console.error(err);
-      self.log("setTemperatureDisplayUnits - %s -> %s", self.temperatureDisplayUnits, value);
+      self.log("setTemperatureDisplayUnits - %s and %s", self.temperatureDisplayUnits, value);
       return callback(null);
     });
   },

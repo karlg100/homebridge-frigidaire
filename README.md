@@ -17,3 +17,7 @@ Note that right now only AC units are supported.
 ## How to install
 
  ```sudo npm install -g homebridge-frigidaire```
+
+## Debug
+If you're having problems, please enable debug and paste all output to the ticket.  To enable debug, run homebridge with the ```DEBUG``` flag set.
+```export DEBUG=homebridge-frigidaire,frigidaire; homebridge```
