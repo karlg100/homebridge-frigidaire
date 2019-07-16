@@ -109,16 +109,24 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   // Required
   getCurrentHeatingCoolingState: function(callback) {
+    var self = this;
     this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
-
-    callback(null, this.currentCoolingState);
+    this.AC.getCoolingState(self.applianceId, function(err, result) {
+      if (err) return console.error(err);
+      if (result == self.AC.COOLINGSTATE_OFF) self.currentCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
+      else if (result == self.AC.COOLINGSTATE_ON) self.currentCoolingState = Characteristic.CurrentHeatingCoolingState.COOL;
+      self.thermostatService
+        .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
+        .updateValue(self.currentCoolingState);
+      self.log("getCurrentHeatingCoolingState: ", self.currentCoolingState);
+      callback(null, self.currentCoolingState);
+    });
   },
 
   setCurrentHeatingCoolingState: function(value, callback) {
     this.log("setCurrentHeatingCoolingState: ", value);
 
-    this.targetCoolingState = value;
-
+    this.currentCoolingState = value;
     callback(null);
   },
 
@@ -131,8 +139,10 @@ FrigidaireAirConditionerAccessory.prototype = {
       else if (result == self.AC.MODE_ECON) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
       else if (result == self.AC.MODE_COOL) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
       else if (result == self.AC.MODE_FAN) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-      self.currentCoolingState = self.targetCoolingState;
-
+      //self.currentCoolingState = self.targetCoolingState;
+      self.thermostatService
+        .getCharacteristic(Characteristic.TargetHeatingCoolingState)
+        .updateValue(self.targetCoolingState);
       self.log("getTargetHeatingCoolingState: ", self.targetCoolingState);
       callback(null, self.targetCoolingState);
     });
@@ -158,13 +168,21 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getCurrentTemperature: function(callback) {
     var self = this;
-    if ( this.disableTemp ) 
+    if ( this.disableTemp ) {
+      self.thermostatService
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .updateValue(undefined);
+      self.currentTemperature = undefined;
       callback(null, undefined);
+    }
     this.AC.getRoomTemp(self.applianceId, function(err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = fahrenheitToCelsius(result);
       self.log("getCurrentTemperature: %s -> %s", result, self.currentTemperature);
+      self.thermostatService
+        .getCharacteristic(Characteristic.CurrentTemperature)
+        .updateValue(self.currentTemperature);
       callback(null, self.currentTemperature);
     });
   },
@@ -176,7 +194,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = fahrenheitToCelsius(result);
       self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
-      callback(null, self.targetTemperature);
+      self.thermostatService
+        .getCharacteristic(Characteristic.TargetTemperature)
+        .updateValue(self.targetTemperature);
     });
   },
 
@@ -186,6 +206,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (err) return console.error(err);
       self.targetTemperature = value;
       self.log("setTargetTemperature to: ", value);
+      self.thermostatService
+        .getCharacteristic(Characteristic.TargetTemperature)
+        .updateValue(self.targetTemperature);
       callback(null);
     });
   },
@@ -196,6 +219,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (err) return console.error(err);
       if (result == self.AC.FAHRENHEIT) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
       else if (result == self.AC.CELSIUS) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
+      self.thermostatService
+        .getCharacteristic(Characteristic.TemperatureDisplayUnits)
+        .updateValue(self.temperatureDisplayUnits);
       self.log("getTemperatureDisplayUnits: ", self.temperatureDisplayUnits);
       return callback(null, self.temperatureDisplayUnits);
     });
@@ -241,6 +267,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       }
 
       self.log("getFanSpeed: ", self.fanSpeed);
+      self.thermostatService
+        .getCharacteristic(Characteristic.RotationSpeed)
+        .updateValue(self.fanSpeed);
       callback(null, self.fanSpeed);
     });
   },
@@ -256,7 +285,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       else if (value >= 0 && value <= 33) newMode = this.AC.FANMODE_LOW;
       else if (value > 33 && value <= 66) newMode = this.AC.FANMODE_MED;
       else if (value > 66 && value < 100) newMode = this.AC.FANMODE_HIGH;
-this.log('newMode = '+newMode);
+      this.log('newMode = '+newMode);
   
       this.AC.fanMode(self.applianceId, newMode, function(err, result) {
         if (err) return console.error(err);
@@ -302,32 +331,32 @@ this.log('newMode = '+newMode);
 
     // you can OPTIONALLY create an information service if you wish to override
     // the default values for things like serial number, model, etc.
-    var informationService = new Service.AccessoryInformation();
+    this.informationService = new Service.AccessoryInformation();
 
-    informationService
+    this.informationService
       .setCharacteristic(Characteristic.Manufacturer, this.make)
       .setCharacteristic(Characteristic.Model, this.model)
       .setCharacteristic(Characteristic.FirmwareRevision, this.firmware)
       .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
-    var thermostatService = new Service.Thermostat(this.name);
+    this.thermostatService = new Service.Thermostat(this.name);
 
     // Required Characteristics
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
       .on('get', this.getCurrentHeatingCoolingState.bind(this))
       .on('set', this.setCurrentHeatingCoolingState.bind(this));
 
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
       .on('get', this.getTargetHeatingCoolingState.bind(this))
       .on('set', this.setTargetHeatingCoolingState.bind(this));
 
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.CurrentTemperature)
       .on('get', this.getCurrentTemperature.bind(this));
 
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.TargetTemperature)
       .setProps({
         minValue: 15.5,
@@ -336,22 +365,22 @@ this.log('newMode = '+newMode);
       .on('get', this.getTargetTemperature.bind(this))
       .on('set', this.setTargetTemperature.bind(this));
 
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.TemperatureDisplayUnits)
       .on('get', this.getTemperatureDisplayUnits.bind(this))
       .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-    thermostatService
+    this.thermostatService
       .addCharacteristic(Characteristic.RotationSpeed)
       .on('get', this.getFanSpeed.bind(this))
       .on('set', this.setFanSpeed.bind(this));
 
     // Optional Characteristics
-    thermostatService
+    this.thermostatService
       .getCharacteristic(Characteristic.Name)
       .on('get', this.getName.bind(this))
       .on('set', this.setName.bind(this));
 
-    return [informationService, thermostatService];
+    return [this.informationService, this.thermostatService];
   }
 };
