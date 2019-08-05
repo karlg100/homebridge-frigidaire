@@ -1,6 +1,6 @@
 {
   "name": "homebridge-frigidaire",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "homebridge plugin for Frigidaire connected appliances",
   "main": "index.js",
   "scripts": {
