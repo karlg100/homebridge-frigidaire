@@ -109,6 +109,10 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   // Required
   getCurrentHeatingCoolingState: function(callback) {
+    this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
+    callback(null, this.currentCoolingState);
+
+/*
     var self = this;
     this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
     this.AC.getCoolingState(self.applianceId, function(err, result) {
@@ -121,6 +125,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       self.log("getCurrentHeatingCoolingState: ", self.currentCoolingState);
       callback(null, self.currentCoolingState);
     });
+*/
   },
 
   setCurrentHeatingCoolingState: function(value, callback) {
@@ -139,10 +144,13 @@ FrigidaireAirConditionerAccessory.prototype = {
       else if (result == self.AC.MODE_ECON) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
       else if (result == self.AC.MODE_COOL) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
       else if (result == self.AC.MODE_FAN) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-      //self.currentCoolingState = self.targetCoolingState;
+      self.currentCoolingState = self.targetCoolingState;
+
+/*
       self.thermostatService
         .getCharacteristic(Characteristic.TargetHeatingCoolingState)
         .updateValue(self.targetCoolingState);
+*/
       self.log("getTargetHeatingCoolingState: ", self.targetCoolingState);
       callback(null, self.targetCoolingState);
     });
@@ -194,9 +202,12 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = fahrenheitToCelsius(result);
       self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
+/*
       self.thermostatService
         .getCharacteristic(Characteristic.TargetTemperature)
         .updateValue(self.targetTemperature);
+*/
+      callback(null, self.targetTemperature);
     });
   },
 
@@ -267,9 +278,11 @@ FrigidaireAirConditionerAccessory.prototype = {
       }
 
       self.log("getFanSpeed: ", self.fanSpeed);
+/*
       self.thermostatService
         .getCharacteristic(Characteristic.RotationSpeed)
         .updateValue(self.fanSpeed);
+*/
       callback(null, self.fanSpeed);
     });
   },
