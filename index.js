@@ -109,10 +109,9 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   // Required
   getCurrentHeatingCoolingState: function(callback) {
-    this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
-    callback(null, this.currentCoolingState);
+    //this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
+    //callback(null, this.currentCoolingState);
 
-/*
     var self = this;
     this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
     this.AC.getCoolingState(self.applianceId, function(err, result) {
@@ -125,32 +124,34 @@ FrigidaireAirConditionerAccessory.prototype = {
       self.log("getCurrentHeatingCoolingState: ", self.currentCoolingState);
       callback(null, self.currentCoolingState);
     });
-*/
   },
 
+
+/* no way to set this with API
   setCurrentHeatingCoolingState: function(value, callback) {
     this.log("setCurrentHeatingCoolingState: ", value);
 
     this.currentCoolingState = value;
     callback(null);
   },
+*/
 
   getTargetHeatingCoolingState: function(callback) {
     var self = this;
 
     this.AC.getMode(self.applianceId, function(err, result) {
+      var oldstate = self.targetCoolingState;
       if (err) return console.error(err);
       if (result == self.AC.MODE_OFF) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
       else if (result == self.AC.MODE_ECON) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
       else if (result == self.AC.MODE_COOL) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
       else if (result == self.AC.MODE_FAN) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
-      self.currentCoolingState = self.targetCoolingState;
 
-/*
-      self.thermostatService
-        .getCharacteristic(Characteristic.TargetHeatingCoolingState)
-        .updateValue(self.targetCoolingState);
-*/
+      if (oldstate === undefined)
+        self.thermostatService
+          .getCharacteristic(Characteristic.TargetHeatingCoolingState)
+          .updateValue(self.targetCoolingState);
+
       self.log("getTargetHeatingCoolingState: ", self.targetCoolingState);
       callback(null, self.targetCoolingState);
     });
@@ -169,7 +170,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (err) return console.error(err);
       self.log("setTargetHeatingCoolingState from/to: ", self.targetCoolingState, value);
       self.targetCoolingState = value;
-      self.currentCoolingState = self.targetCoolingState;
+      self.thermostatService
+        .getCharacteristic(Characteristic.TargetHeatingCoolingState)
+        .updateValue(self.targetCoolingState);
       callback(null);
     });
   },
@@ -199,14 +202,15 @@ FrigidaireAirConditionerAccessory.prototype = {
     var self = this;
     this.AC.getTemp(self.applianceId, function(err, result) {
       if (err) return console.error(err);
+      var oldtemp = self.targetTemperature;
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = fahrenheitToCelsius(result);
       self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
-/*
-      self.thermostatService
-        .getCharacteristic(Characteristic.TargetTemperature)
-        .updateValue(self.targetTemperature);
-*/
+
+      if (oldtemp === undefined)
+        self.thermostatService
+          .getCharacteristic(Characteristic.TargetTemperature)
+          .updateValue(self.targetTemperature);
       callback(null, self.targetTemperature);
     });
   },
@@ -256,6 +260,8 @@ FrigidaireAirConditionerAccessory.prototype = {
     this.AC.getFanMode(self.applianceId, function(err, result) {
       if (err) return console.error(err);
 
+      var oldfan = self.fanSpeed;
+
       // we only have 3 fan speeds, plus auto.
       // auto = 100%
       // high = 67-99%
@@ -278,11 +284,12 @@ FrigidaireAirConditionerAccessory.prototype = {
       }
 
       self.log("getFanSpeed: ", self.fanSpeed);
-/*
-      self.thermostatService
-        .getCharacteristic(Characteristic.RotationSpeed)
-        .updateValue(self.fanSpeed);
-*/
+
+      if (oldfan === undefined)
+        self.thermostatService
+          .getCharacteristic(Characteristic.RotationSpeed)
+          .updateValue(self.fanSpeed);
+
       callback(null, self.fanSpeed);
     });
   },
@@ -290,15 +297,18 @@ FrigidaireAirConditionerAccessory.prototype = {
   setFanSpeed: function(value, callback) {
     var self = this;
     var newMode;
-    if (this.fanPending)
-      callback(null);
-    else {
-      this.fanPending = true;
+    //if (this.fanPending)
+      //callback(null);
+    //else {
+      //this.fanPending = true;
       if(value == 100) newMode =  this.AC.FANMODE_AUTO;
       else if (value >= 0 && value <= 33) newMode = this.AC.FANMODE_LOW;
       else if (value > 33 && value <= 66) newMode = this.AC.FANMODE_MED;
       else if (value > 66 && value < 100) newMode = this.AC.FANMODE_HIGH;
       this.log('newMode = '+newMode);
+      self.thermostatService
+        .getCharacteristic(Characteristic.RotationSpeed)
+        .updateValue(self.fanSpeed);
   
       this.AC.fanMode(self.applianceId, newMode, function(err, result) {
         if (err) return console.error(err);
@@ -308,7 +318,7 @@ FrigidaireAirConditionerAccessory.prototype = {
         self.fanPending = false;
         callback(null);
       });
-    }
+    //}
   },
 
   pushUpdate: function(characteristic, err, value) {
@@ -357,8 +367,8 @@ FrigidaireAirConditionerAccessory.prototype = {
     // Required Characteristics
     this.thermostatService
       .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-      .on('get', this.getCurrentHeatingCoolingState.bind(this))
-      .on('set', this.setCurrentHeatingCoolingState.bind(this));
+      .on('get', this.getCurrentHeatingCoolingState.bind(this));
+      //.on('set', this.setCurrentHeatingCoolingState.bind(this));
 
     this.thermostatService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
