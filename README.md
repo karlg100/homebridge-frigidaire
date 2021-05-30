@@ -3,14 +3,16 @@ homebridge Platform plugin for Frigidaire connected appliances.  This is a platf
 
 Note that right now only AC units are supported.
 
+Device ID can be anything, just change some letters/numbers in it to make it uniquely yours.
 
 ## Example config.json:
 	"platforms": [
 		{
 			"platform": "Frigidaire",
-			"name": "Frigidaire AC Units",
+			"applianceSerial": "94126327",
 			"username": "joe@gmail.com",
-			"password": "Password1"
+			"password": "Password1",
+			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
     }		
 	]
 
