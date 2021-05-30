@@ -3,6 +3,9 @@ homebridge Platform plugin for Frigidaire connected appliances.  This is a platf
 
 Note that right now only AC units are supported.
 
+## Update 5-30-2021
+Code has been updated to handle Frigidaire's new app, which uses a new backend API. Ensure config.json is updated with applianceSerial and deviceId items.
+
 Device ID can be anything, just change some letters/numbers in it to make it uniquely yours.
 
 ## Example config.json:

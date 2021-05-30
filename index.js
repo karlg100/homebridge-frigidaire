@@ -33,7 +33,7 @@ function FrigidairePlatform(log, config) {
     password: this.config.password,
     pollingInterval: this.pollingInterval,
     applianceSerial: this.config.applianceSerial,
-    deviceId: "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP"
+    deviceId: this.config.deviceId
   });
 }
 
