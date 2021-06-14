@@ -15,7 +15,7 @@ Device ID can be anything, just change some letters/numbers in it to make it uni
 			"platform": "Frigidaire",
 			"username": "joe@gmail.com",
 			"password": "Password1",
-    }		
+		}
 	]
 
 ### Optional
@@ -26,7 +26,7 @@ Device ID can be anything, just change some letters/numbers in it to make it uni
 			"password": "Password1",
 			"applianceSerial": "94126327",
 			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
-    }		
+		}
 	]
 
 ```applianceSerial``` - Serial number of the device.  Will ignore all other devices on your account
