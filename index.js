@@ -1,6 +1,6 @@
 'use strict';
 
-var debug = require('debug')('homebridge-frigidaire');
+var debug = require('debug')('frigidaire:homebridge');
 var Frigidaire = require('frigidaire');
 
 var Service, Characteristic;
@@ -32,8 +32,8 @@ function FrigidairePlatform(log, config) {
     username: this.config.username,
     password: this.config.password,
     pollingInterval: this.pollingInterval,
-    applianceSerial: this.config.applianceSerial,
-    deviceId: this.config.deviceId
+    applianceSerial: this.config.applianceSerial || null,
+    deviceId: this.config.deviceId || null
   });
 }
 
@@ -41,24 +41,48 @@ FrigidairePlatform.prototype = {
   accessories: function (callback) {
     var self = this;
     var airConditioners = [];
-    self.AC.getTelem(function (err, result) {
-      if (err) {console.error(err);
-      callback(airConditioners) }
-      else {
-      console.log('Found device specified in config!');
-      //console.log(result);
+    if (self.config.applianceSerial) {
+      console.log("Serial number provided, only setting up one accessory...");
+      self.AC.getTelem(self.config.applianceSerial, function (err, result) {
+        if (err) {
+          console.error(err);
+          callback(airConditioners);
+        } else {
+          console.log('Found device specified!');
+          var applianceObj = self.AC.getDevice(self.config.applianceSerial);
+          //console.log(result);
 
-      console.log('creating accessory for AC unit labeled: ' + self.AC.applianceObj.nickname + " (" + self.AC.applianceObj.appliance_id + ")");
-      airConditioners.push(new FrigidaireAirConditionerAccessory(self.AC, self.log, self.pollingInterval));
-
-      callback(airConditioners); }
-    });
+          console.log('creating accessory for AC unit labeled: ' + applianceObj.nickname + " (" + applianceObj.appliance_id + ")");
+          airConditioners.push(new FrigidaireAirConditionerAccessory(applianceObj, self.AC, self.log, self.pollingInterval));
+  
+          callback(airConditioners); 
+        }
+      });
+    } else {
+      console.log("Autodetecting all devices...");
+      self.AC.getDevices(function (err, result) {
+        if (err) {
+          console.error(err);
+          callback(airConditioners);
+        }
+        debug("Got Device List, setting up each accessory");
+        result.forEach(function(device) {
+          console.log('craeting accessory for AC unit labeled : '+device.nickname);
+          debug(device);
+          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log, self.pollingInterval));
+          self.AC.getTelem(device.sn, function (err, result) { });
+        });
+        callback(airConditioners);
+      });
+    }
   },
 };
 
-function FrigidaireAirConditionerAccessory(AC, log, pollingInterval) {
+function FrigidaireAirConditionerAccessory(applianceObj, AC, log, pollingInterval) {
   this.log = log;
   this.AC = AC;
+  this.applianceObj = applianceObj;
+  this.applianceSn = applianceObj.sn;
   this.pollingInterval = pollingInterval;
   this.log('pollingInterval is set to ' + this.pollingInterval);
 
@@ -83,16 +107,17 @@ function FrigidaireAirConditionerAccessory(AC, log, pollingInterval) {
   this.fanPending = false; // need to change this to a timer, so the last value always gets executed after the current pending value is completed.
 
   var deviceVersion;
-  this.AC.telem.forEach(item => { if (item.haclCode === '0011') { deviceVersion = item.stringValue } });
+  this.AC.getValue(this.applianceSn, this.AC.VERSION, function(err, result) { deviceVersion = result });
+  //this.AC.telem.forEach(item => { if (item.haclCode === '0011') { deviceVersion = item.stringValue } });
 
-  this.applianceId = this.AC.applianceObj.appliance_id;
+  this.applianceId = this.applianceObj.appliance_id;
   this.make = 'Frigidaire';
-  this.model = 'AC';
-  this.serialNumber = this.AC.applianceObj.sn;
-  this.name = this.AC.applianceObj.nickname;
+  this.model = 'AC ' + this.applianceObj.appliance_type;
+  this.serialNumber = this.applianceSn;
+  this.name = this.applianceObj.nickname;
   this.firmware = deviceVersion;
 
-  this.AC.scheduleUpdates(function () { });
+  this.AC.scheduleUpdates(this.applianceSn, function () { });
   var self = this;
   this.updateTimer = setInterval(function () { self.updateAll(); }, this.pollingInterval);
 }
@@ -118,7 +143,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
     var self = this;
     this.log("getCurrentHeatingCoolingState: ", this.currentCoolingState);
-    this.AC.getCoolingState(function (err, result) {
+    this.AC.getCoolingState(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
       if (result == self.AC.COOLINGSTATE_OFF) self.currentCoolingState = Characteristic.CurrentHeatingCoolingState.OFF;
       else if (result == self.AC.COOLINGSTATE_ON) self.currentCoolingState = Characteristic.CurrentHeatingCoolingState.COOL;
@@ -143,7 +168,7 @@ FrigidaireAirConditionerAccessory.prototype = {
   getTargetHeatingCoolingState: function (callback) {
     var self = this;
 
-    this.AC.getMode(function (err, result) {
+    this.AC.getMode(self.applianceSn, function (err, result) {
       var oldstate = self.targetCoolingState;
       if (err) return console.error(err);
       if (result == self.AC.MODE_OFF) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.OFF;
@@ -170,7 +195,7 @@ FrigidaireAirConditionerAccessory.prototype = {
     else if (value == Characteristic.TargetHeatingCoolingState.COOL) var newMode = self.AC.MODE_COOL;
     else if (value == Characteristic.TargetHeatingCoolingState.HEAT) var newMode = self.AC.MODE_FAN;
 
-    this.AC.mode(newMode, function (err, result) {
+    this.AC.mode(self.applianceSn, newMode, function (err, result) {
       if (err) return console.error(err);
       self.log("setTargetHeatingCoolingState from/to: ", self.targetCoolingState, value);
       self.targetCoolingState = value;
@@ -190,7 +215,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       self.currentTemperature = undefined;
       callback(null, undefined);
     }
-    this.AC.getRoomTemp(function (err, result) {
+    this.AC.getRoomTemp(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = fahrenheitToCelsius(result);
@@ -204,7 +229,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getTargetTemperature: function (callback) {
     var self = this;
-    this.AC.getTemp(function (err, result) {
+    this.AC.getTemp(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
       var oldtemp = self.targetTemperature;
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
@@ -221,7 +246,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   setTargetTemperature: function (value, callback) {
     var self = this;
-    this.AC.setTemp(celsiusToFahrenheit(value), function (err, result) {
+    this.AC.setTemp(self.applianceSn, celsiusToFahrenheit(value), function (err, result) {
       if (err) return console.error(err);
       self.targetTemperature = value;
       self.log("setTargetTemperature to: ", value);
@@ -234,7 +259,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getTemperatureDisplayUnits: function (callback) {
     var self = this;
-    this.AC.getUnit(function (err, result) {
+    this.AC.getUnit(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
       if (result == self.AC.FAHRENHEIT) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
       else if (result == self.AC.CELSIUS) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
@@ -252,7 +277,7 @@ FrigidaireAirConditionerAccessory.prototype = {
     else if (value == Characteristic.TemperatureDisplayUnits.CELSIUS) var newValue = self.AC.CELSIUS;
     this.temperatureDisplayUnits = value;
 
-    self.AC.changeUnits(newValue, function (err, result) {
+    self.AC.changeUnits(self.applianceSn, newValue, function (err, result) {
       if (err) return console.error(err);
       self.log("setTemperatureDisplayUnits - %s and %s", self.temperatureDisplayUnits, value);
       return callback(null);
@@ -261,7 +286,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getFanSpeed: function (callback) {
     var self = this;
-    this.AC.getFanMode(function (err, result) {
+    this.AC.getFanMode(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
 
       var oldfan = self.fanSpeed;
@@ -314,7 +339,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       .getCharacteristic(Characteristic.RotationSpeed)
       .updateValue(self.fanSpeed);
 
-    this.AC.fanMode(newMode, function (err, result) {
+    this.AC.fanMode(self.applianceSn, newMode, function (err, result) {
       if (err) return console.error(err);
       self.log('Turned fan to ' + self.fanSpeed);
 
@@ -330,7 +355,7 @@ FrigidaireAirConditionerAccessory.prototype = {
   },
 
   updateAll: function () {
-    this.AC.getTelem(function (err, result) { })
+    this.AC.getTelem(this.applianceSn, function (err, result) { })
 
     this.getTemperatureDisplayUnits(function () { });
     this.getCurrentHeatingCoolingState(function () { });

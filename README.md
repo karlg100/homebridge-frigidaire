@@ -3,21 +3,35 @@ homebridge Platform plugin for Frigidaire connected appliances.  This is a platf
 
 Note that right now only AC units are supported.
 
-## Update 5-30-2021
+## Update 6-14-2021
 Code has been updated to handle Frigidaire's new app, which uses a new backend API. Ensure config.json is updated with applianceSerial and deviceId items.
 
 Device ID can be anything, just change some letters/numbers in it to make it uniquely yours.
 
 ## Example config.json:
+### Minimum
 	"platforms": [
 		{
 			"platform": "Frigidaire",
-			"applianceSerial": "94126327",
 			"username": "joe@gmail.com",
 			"password": "Password1",
+    }		
+	]
+
+### Optional
+	"platforms": [
+		{
+			"platform": "Frigidaire",
+			"username": "joe@gmail.com",
+			"password": "Password1",
+			"applianceSerial": "94126327",
 			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
     }		
 	]
+
+```applianceSerial``` - Serial number of the device.  Will ignore all other devices on your account
+```deviceId``` - Manually set the DeviceId
+
 
 ## How to install
 
@@ -25,4 +39,4 @@ Device ID can be anything, just change some letters/numbers in it to make it uni
 
 ## Debug
 If you're having problems, please enable debug and paste all output to the ticket.  To enable debug, run homebridge with the ```DEBUG``` set.
-```export DEBUG=homebridge-frigidaire,frigidaire; homebridge```
+```export DEBUG=frigidaire:*; homebridge```
