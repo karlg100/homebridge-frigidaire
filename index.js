@@ -218,7 +218,7 @@ FrigidaireAirConditionerAccessory.prototype = {
     this.AC.getRoomTemp(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
-      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = fahrenheitToCelsius(result);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = result;
       self.log("getCurrentTemperature: %s -> %s", result, self.currentTemperature);
       self.thermostatService
         .getCharacteristic(Characteristic.CurrentTemperature)
@@ -233,7 +233,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (err) return console.error(err);
       var oldtemp = self.targetTemperature;
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
-      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = fahrenheitToCelsius(result);
+      if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = result;
       self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
 
       if (oldtemp === undefined)
