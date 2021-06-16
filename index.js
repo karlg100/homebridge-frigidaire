@@ -165,6 +165,32 @@ FrigidaireAirConditionerAccessory.prototype = {
     },
   */
 
+  getCleanAir: function (callback) {
+    var self = this;
+
+    this.AC.getCleanAir(self.applianceSn, function (err, result) {
+      if (err) return console.error(err);
+      if (result == self.AC.CLEANAIR_ON) self.cleanAir = Characteristic.On;
+      else if (result == self.AC.CLEANAIR_OFF) self.cleanAir = Characteristic.Off;
+
+      self.log("getCleanAir: ", self.cleanAir);
+      callback(null, self.cleanAir);
+    });
+  },
+
+  setCleanAir: function (value, callback) {
+    var self = this;
+    if (value == true) var newMode = self.AC.CLEANAIR_ON;
+    else if (value == false) var newMode = self.AC.CLEANAIR_OFF;
+
+    this.AC.cleanAir(self.applianceSn, newMode, function (err, result) {
+      if (err) return console.error(err);
+
+      self.log("getCleanAir: ", newMode);
+      callback(null, self.cleanAir);
+    });
+  },
+
   getTargetHeatingCoolingState: function (callback) {
     var self = this;
 
@@ -395,8 +421,14 @@ FrigidaireAirConditionerAccessory.prototype = {
       .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
     this.thermostatService = new Service.Thermostat(this.name);
+    this.cleanAirSwitch = new Service.Switch("Clean Air");
 
     // Required Characteristics
+    this.cleanAirSwitch
+      .getCharacteristic(Characteristic.On)
+      .on('get', this.getCleanAir.bind(this))
+      .on('set', this.setCleanAir.bind(this));
+
     this.thermostatService
       .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
       .on('get', this.getCurrentHeatingCoolingState.bind(this));
@@ -436,6 +468,6 @@ FrigidaireAirConditionerAccessory.prototype = {
       .on('get', this.getName.bind(this))
       .on('set', this.setName.bind(this));
 
-    return [this.informationService, this.thermostatService];
+    return [this.informationService, this.thermostatService, this.cleanAirSwitch];
   }
 };
