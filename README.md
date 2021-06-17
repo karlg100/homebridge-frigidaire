@@ -22,7 +22,7 @@ Code has been updated to handle Frigidaire's new app, which uses a new backend A
 			"platform": "Frigidaire",
 			"username": "joe@gmail.com",
 			"password": "Password1",
-      "cleanAirEnable": true,
+			"cleanAirEnable": true,
 			"applianceSerial": "94126327",
 			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
 		}
