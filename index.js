@@ -27,6 +27,7 @@ function FrigidairePlatform(log, config) {
   this.config = config;
 
   this.pollingInterval = this.config.pollingInterval || 10000;
+  this.cleanAirEnabled = this.config.cleanAirEnabled || false;
 
   this.AC = new Frigidaire({
     username: this.config.username,
@@ -421,13 +422,15 @@ FrigidaireAirConditionerAccessory.prototype = {
       .setCharacteristic(Characteristic.SerialNumber, this.serialNumber);
 
     this.thermostatService = new Service.Thermostat(this.name);
-    this.cleanAirSwitch = new Service.Switch("Clean Air");
 
     // Required Characteristics
-    this.cleanAirSwitch
-      .getCharacteristic(Characteristic.On)
-      .on('get', this.getCleanAir.bind(this))
-      .on('set', this.setCleanAir.bind(this));
+    if (this.cleanAirEnabled) {
+        this.cleanAirSwitch = new Service.Switch("Clean Air");
+        this.cleanAirSwitch
+          .getCharacteristic(Characteristic.On)
+          .on('get', this.getCleanAir.bind(this))
+          .on('set', this.setCleanAir.bind(this));
+    }
 
     this.thermostatService
       .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
@@ -468,6 +471,10 @@ FrigidaireAirConditionerAccessory.prototype = {
       .on('get', this.getName.bind(this))
       .on('set', this.setName.bind(this));
 
-    return [this.informationService, this.thermostatService, this.cleanAirSwitch];
+    if (this.cleanAirEnabled) {
+        return [this.informationService, this.thermostatService, this.cleanAirSwitch];
+    } else {
+        return [this.informationService, this.thermostatService];
+    }
   }
 };
