@@ -54,7 +54,7 @@ FrigidairePlatform.prototype = {
           //console.log(result);
 
           console.log('creating accessory for AC unit labeled: ' + applianceObj.nickname + " (" + applianceObj.appliance_id + ")");
-          airConditioners.push(new FrigidaireAirConditionerAccessory(applianceObj, self.AC, self.log, self.pollingInterval));
+          airConditioners.push(new FrigidaireAirConditionerAccessory(applianceObj, self.AC, self.log, self.pollingInterval, self.cleanAirEnable));
   
           callback(airConditioners); 
         }
@@ -70,7 +70,7 @@ FrigidairePlatform.prototype = {
         result.forEach(function(device) {
           console.log('craeting accessory for AC unit labeled : '+device.nickname);
           debug(device);
-          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log, self.pollingInterval));
+          airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log, self.pollingInterval, self.cleanAirEnable));
           self.AC.getTelem(device.sn, function (err, result) { });
         });
         callback(airConditioners);
@@ -79,12 +79,14 @@ FrigidairePlatform.prototype = {
   },
 };
 
-function FrigidaireAirConditionerAccessory(applianceObj, AC, log, pollingInterval) {
+function FrigidaireAirConditionerAccessory(applianceObj, AC, log, pollingInterval, cleanAirEnable) {
   this.log = log;
   this.AC = AC;
   this.applianceObj = applianceObj;
   this.applianceSn = applianceObj.sn;
   this.pollingInterval = pollingInterval;
+  this.cleanAirEnable = cleanAirEnable;
+  this.log('Clean Air toggle is set to ' + this.cleanAirEnable);
   this.log('pollingInterval is set to ' + this.pollingInterval);
 
   // Characteristic.TargetHeatingCoolingState.OFF
@@ -425,11 +427,14 @@ FrigidaireAirConditionerAccessory.prototype = {
 
     // Required Characteristics
     if (this.cleanAirEnable) {
+        debug("Clean Air Switch created for " + this.name);
         this.cleanAirSwitch = new Service.Switch("Clean Air");
         this.cleanAirSwitch
           .getCharacteristic(Characteristic.On)
           .on('get', this.getCleanAir.bind(this))
           .on('set', this.setCleanAir.bind(this));
+    } else {
+        debug("Clean Air Switch skipped for " + this.name);
     }
 
     this.thermostatService
