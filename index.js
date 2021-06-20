@@ -43,13 +43,13 @@ FrigidairePlatform.prototype = {
     var self = this;
     var airConditioners = [];
     if (self.config.applianceSerial) {
-      console.log("Serial number provided, only setting up one accessory...");
+      debug("Serial number provided, only setting up one accessory...");
       self.AC.getTelem(self.config.applianceSerial, function (err, result) {
         if (err) {
           console.error(err);
           callback(airConditioners);
         } else {
-          console.log('Found device specified!');
+          debug('Found device specified!');
           var applianceObj = self.AC.getDevice(self.config.applianceSerial);
           //console.log(result);
 
@@ -60,19 +60,21 @@ FrigidairePlatform.prototype = {
         }
       });
     } else {
-      console.log("Autodetecting all devices...");
+      debug("Autodetecting all devices...");
       self.AC.getDevices(function (err, result) {
         if (err) {
           console.error(err);
           callback(airConditioners);
         }
         debug("Got Device List, setting up each accessory");
+        debug(result);
         result.forEach(function(device) {
           console.log('craeting accessory for AC unit labeled : '+device.nickname);
           debug(device);
           airConditioners.push(new FrigidaireAirConditionerAccessory(device, self.AC, self.log, self.pollingInterval, self.cleanAirEnable));
           self.AC.getTelem(device.sn, function (err, result) { });
         });
+        debug("calling back airConditioners");
         callback(airConditioners);
       });
     }
@@ -120,9 +122,9 @@ function FrigidaireAirConditionerAccessory(applianceObj, AC, log, pollingInterva
   this.name = this.applianceObj.nickname;
   this.firmware = deviceVersion;
 
-  this.AC.scheduleUpdates(this.applianceSn, function () { });
+  //this.AC.scheduleUpdates(this.applianceSn, function () { });
   var self = this;
-  this.updateTimer = setInterval(function () { self.updateAll(); }, this.pollingInterval);
+  this.updateTimer = setInterval(self.updateAll, this.pollingInterval, self);
 }
 
 FrigidaireAirConditionerAccessory.prototype = {
@@ -176,7 +178,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (result == self.AC.CLEANAIR_ON) self.cleanAir = Characteristic.On;
       else if (result == self.AC.CLEANAIR_OFF) self.cleanAir = Characteristic.Off;
 
-      self.log("getCleanAir: ", self.cleanAir);
+      //self.log("getCleanAir: ", self.cleanAir);
       callback(null, self.cleanAir);
     });
   },
@@ -383,16 +385,17 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   },
 
-  updateAll: function () {
-    this.AC.getTelem(this.applianceSn, function (err, result) { })
-
-    this.getTemperatureDisplayUnits(function () { });
-    this.getCurrentHeatingCoolingState(function () { });
-    this.getTargetHeatingCoolingState(function () { });
-    this.getCurrentTemperature(function () { });
-    this.getTargetTemperature(function () { });
-    this.getFanSpeed(function () { });
-
+  updateAll: function (self) {
+    debug("updateAll() - " + self.applianceSn);
+    self.AC.getTelem(self.applianceSn, function (err, result) { 
+        debug("updateAll() - updating homekit " + self.applianceSn);
+        self.getTemperatureDisplayUnits(function () { });
+        self.getCurrentHeatingCoolingState(function () { });
+        self.getTargetHeatingCoolingState(function () { });
+        self.getCurrentTemperature(function () { });
+        self.getTargetTemperature(function () { });
+        self.getFanSpeed(function () { });
+    });
   },
 
   // Optional
