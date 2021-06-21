@@ -178,7 +178,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       if (result == self.AC.CLEANAIR_ON) self.cleanAir = Characteristic.On;
       else if (result == self.AC.CLEANAIR_OFF) self.cleanAir = Characteristic.Off;
 
-      //self.log("getCleanAir: ", self.cleanAir);
+      self.log("getCleanAir: ", self.cleanAir);
       callback(null, self.cleanAir);
     });
   },
@@ -207,7 +207,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       else if (result == self.AC.MODE_COOL) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.COOL;
       else if (result == self.AC.MODE_FAN) self.targetCoolingState = Characteristic.TargetHeatingCoolingState.HEAT;
 
-      if (oldstate === undefined)
+      if (oldstate != self.targetCoolingState)
         self.thermostatService
           .getCharacteristic(Characteristic.TargetHeatingCoolingState)
           .updateValue(self.targetCoolingState);
@@ -248,12 +248,14 @@ FrigidaireAirConditionerAccessory.prototype = {
     }
     this.AC.getRoomTemp(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
+      var oldtemp = self.currentTemperature;
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.currentTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.currentTemperature = result;
       self.log("getCurrentTemperature: %s -> %s", result, self.currentTemperature);
-      self.thermostatService
-        .getCharacteristic(Characteristic.CurrentTemperature)
-        .updateValue(self.currentTemperature);
+      if (oldtemp != self.currentTemperature)
+        self.thermostatService
+          .getCharacteristic(Characteristic.CurrentTemperature)
+          .updateValue(self.currentTemperature);
       callback(null, self.currentTemperature);
     });
   },
@@ -292,11 +294,13 @@ FrigidaireAirConditionerAccessory.prototype = {
     var self = this;
     this.AC.getUnit(self.applianceSn, function (err, result) {
       if (err) return console.error(err);
+      var oldunits = self.temperatureDisplayUnits;
       if (result == self.AC.FAHRENHEIT) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
       else if (result == self.AC.CELSIUS) self.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-      self.thermostatService
-        .getCharacteristic(Characteristic.TemperatureDisplayUnits)
-        .updateValue(self.temperatureDisplayUnits);
+      if (oldunits != self.temperatureDisplayUnits)
+        self.thermostatService
+          .getCharacteristic(Characteristic.TemperatureDisplayUnits)
+          .updateValue(self.temperatureDisplayUnits);
       self.log("getTemperatureDisplayUnits: ", self.temperatureDisplayUnits);
       return callback(null, self.temperatureDisplayUnits);
     });
@@ -345,7 +349,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
       self.log("getFanSpeed: ", self.fanSpeed);
 
-      //if (oldfan === undefined)
+      if (oldfan != self.fanSpeed)
         self.thermostatService
           .getCharacteristic(Characteristic.RotationSpeed)
           .updateValue(self.fanSpeed);
