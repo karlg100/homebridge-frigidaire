@@ -265,9 +265,9 @@ FrigidaireAirConditionerAccessory.prototype = {
       var oldtemp = self.targetTemperature;
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.FAHRENHEIT) self.targetTemperature = fahrenheitToCelsius(result);
       if (self.temperatureDisplayUnits == Characteristic.TemperatureDisplayUnits.CELSIUS) self.targetTemperature = result;
-      self.log("getTargetTemperature: %s -> %s", result, self.targetTemperature);
+      self.log("getTargetTemperature %s -> %s (old: %s)", result, self.targetTemperature, oldtemp);
 
-      if (oldtemp === undefined)
+      if (oldtemp === undefined || oldtemp != self.targetTemperature)
         self.thermostatService
           .getCharacteristic(Characteristic.TargetTemperature)
           .updateValue(self.targetTemperature);
