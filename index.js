@@ -41,6 +41,7 @@ FrigidairePlatform.prototype = {
   accessories: function (callback) {
     var self = this;
     var airConditioners = [];
+/*
     if (self.config.applianceSerial) {
       debug("Serial number provided, only setting up one accessory...");
       self.AC.getTelem(self.config.applianceSerial, function (err, result) {
@@ -59,6 +60,7 @@ FrigidairePlatform.prototype = {
         }
       });
     } else {
+*/
       debug("Autodetecting all devices...");
       self.AC.getDevices(function (err, result) {
         if (err) {
@@ -76,7 +78,7 @@ FrigidairePlatform.prototype = {
         debug("calling back airConditioners");
         return callback(airConditioners);
       });
-    }
+    //}
   },
 };
 

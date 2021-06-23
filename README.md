@@ -22,12 +22,10 @@ Code has been updated to handle Frigidaire's new app, which uses a new backend A
 			"platform": "Frigidaire",
 			"username": "joe@gmail.com",
 			"password": "Password1",
-			"applianceSerial": "94126327",
 			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
 		}
 	]
 
-* ```applianceSerial``` - Serial number of the device.  Will ignore all other devices on your account
 * ```deviceId``` - Manually set the DeviceId. Can be anything you want. Otherwise is randomly generated every time homebridge is started
 
 
