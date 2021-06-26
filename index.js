@@ -410,6 +410,29 @@ FrigidaireAirConditionerAccessory.prototype = {
     });
   },
 
+  getFilter: function (callback) {
+    var self = this;
+
+    this.AC.getFilter(self.applianceSn, function (err, result) {
+      var newValue;
+      if (err) return console.error(err);
+      if (result == self.AC.FILTER_GOOD) newValue = Characteristic.FilterChangeIndication.FILTER_OK;
+      else newValue = Characteristic.FilterChangeIndication.CHANGE_FILTER;
+
+
+      self.log("getFilter: ", self.filter);
+
+      if (self.filter != newValue) {
+        self.filter = newValue;
+        self.filterStatus
+          .setCharacteristic(Characteristic.FilterChangeIndication, newValue);
+      }
+
+      return callback(null, self.fulter);
+    });
+  },
+
+
   pushUpdate: function (characteristic, err, value) {
 
   },
@@ -425,6 +448,7 @@ FrigidaireAirConditionerAccessory.prototype = {
         self.getTargetTemperature(function () { });
         self.getFanSpeed(function () { });
         self.getCleanAir(function () { });
+        self.getFilter(function () { });
     });
   },
 
@@ -467,14 +491,23 @@ FrigidaireAirConditionerAccessory.prototype = {
           .getCharacteristic(Characteristic.On)
           .on('get', this.getCleanAir.bind(this))
           .on('set', this.setCleanAir.bind(this));
+    //debug(this.cleanAirSwitch);
     //} else {
         //debug("Clean Air Switch skipped for " + this.name);
     //}
+
+
+    // Filter status attribute
+    this.filterStatus = new Service.FilterMaintenance("Air Filter");
+    this.filterStatus
+        .getCharacteristic(Characteristic.FilterChangeIndication)
+        .on('get', this.getFilter.bind(this));
 
     this.thermostatService
       .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
       .on('get', this.getCurrentHeatingCoolingState.bind(this));
     //.on('set', this.setCurrentHeatingCoolingState.bind(this));
+    //debug(this.filterStatus);
 
     this.thermostatService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
@@ -512,7 +545,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
     //if (this.AC.hasAttribute(this.applianceSn, this.AC.CLEANAIR)) {
     //if (this.cleanAirEnable) {
-        return [this.informationService, this.thermostatService, this.cleanAirSwitch];
+        return [this.informationService, this.thermostatService, this.cleanAirSwitch, this.filterStatus];
     //} else {
         //return [this.informationService, this.thermostatService];
     //}
