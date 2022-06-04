@@ -428,7 +428,7 @@ FrigidaireAirConditionerAccessory.prototype = {
           .setCharacteristic(Characteristic.FilterChangeIndication, newValue);
       }
 
-      return callback(null, self.fulter);
+      return callback(null, self.filter);
     });
   },
 
