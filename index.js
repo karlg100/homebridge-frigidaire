@@ -170,22 +170,14 @@ FrigidaireAirConditionerAccessory.prototype = {
 
   getCleanAir: function (callback) {
     var self = this;
-
     this.AC.getCleanAir(self.applianceSn, function (err, result) {
-      var newValue;
-      if (err) return console.error(err);
-      if (result == self.AC.CLEANAIR_ON) newValue = true;
-      else if (result == self.AC.CLEANAIR_OFF) newValue = false;
+      if (err) return callback(err);
+      if (result == self.AC.CLEANAIR_ON) self.cleanAir = true;
+      else if (result == self.AC.CLEANAIR_OFF) self.cleanAir = false;
 
       self.log("getCleanAir: ", self.cleanAir);
 
-      if (self.cleanAir != newValue) {
-        self.cleanAir = newValue;
-        self.cleanAirSwitch
-          .setCharacteristic(Characteristic.On, newValue);
-      }
-
-      return callback(null, self.cleanAir);
+      callback(null, self.cleanAir);
     });
   },
 
@@ -194,19 +186,12 @@ FrigidaireAirConditionerAccessory.prototype = {
     if (value == true) var newMode = self.AC.CLEANAIR_ON;
     else if (value == false) var newMode = self.AC.CLEANAIR_OFF;
 
-    if (self.cleanAir == value)
-      return callback(null, self.cleanAir);
-
-    this.AC.cleanAir(self.applianceSn, newMode, function (err, result) {
-      if (err) return console.error(err);
-
-      self.log("getCleanAir: ", newMode);
+    if (self.cleanAir == value) return callback(null, null)
+    this.AC.cleanAir(self.applianceSn, newMode, function (err) {
+      if (err) return callback(err);
       self.cleanAir = value;
-
-      self.cleanAirSwitch
-        .setCharacteristic(Characteristic.On, value);
-
-      return callback(null, self.cleanAir);
+      self.log("getCleanAir: ", self.cleanAir);
+      callback(null, null)
     });
   },
 
