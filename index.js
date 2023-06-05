@@ -22,7 +22,7 @@ module.exports = function (homebridge) {
 };
 
 function FrigidairePlatform(log, config) {
-  this.log = debug;
+  this.log = log;
 
   this.config = config;
 
@@ -428,7 +428,7 @@ FrigidaireAirConditionerAccessory.prototype = {
           .setCharacteristic(Characteristic.FilterChangeIndication, newValue);
       }
 
-      return callback(null, self.fulter);
+      return callback(null, self.filter);
     });
   },
 
