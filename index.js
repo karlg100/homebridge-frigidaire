@@ -424,7 +424,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
       if (self.filter != newValue) {
         self.filter = newValue;
-        self.filterStatus
+        self.thermostatService
           .setCharacteristic(Characteristic.FilterChangeIndication, newValue);
       }
 
@@ -486,7 +486,7 @@ FrigidaireAirConditionerAccessory.prototype = {
     //if (this.AC.hasAttribute(this.applianceSn, this.AC.CLEANAIR)) {
     //if (this.cleanAirEnable) {
         debug("Clean Air Switch created for " + this.name);
-        this.cleanAirSwitch = new Service.Switch("Clean Air");
+        this.cleanAirSwitch = new Service.Switch(this.name + " Ionizer");
         this.cleanAirSwitch
           .getCharacteristic(Characteristic.On)
           .on('get', this.getCleanAir.bind(this))
@@ -498,8 +498,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
 
     // Filter status attribute
-    this.filterStatus = new Service.FilterMaintenance("Air Filter");
-    this.filterStatus
+    this.thermostatService
         .getCharacteristic(Characteristic.FilterChangeIndication)
         .on('get', this.getFilter.bind(this));
 
@@ -521,8 +520,9 @@ FrigidaireAirConditionerAccessory.prototype = {
     this.thermostatService
       .getCharacteristic(Characteristic.TargetTemperature)
       .setProps({
-        minValue: 15.5,
-        maxValue: 32
+        minValue: 15.56,
+        maxValue: 32.22,
+        minStep: 0.1
       })
       .on('get', this.getTargetTemperature.bind(this))
       .on('set', this.setTargetTemperature.bind(this));
