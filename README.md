@@ -3,31 +3,34 @@ homebridge Platform plugin for Frigidaire connected appliances.  This is a platf
 
 Note that right now only AC units are supported.
 
-## Update 6-22-2021
-Code has been updated to handle Frigidaire's new app, which uses a new backend API.
+## Update 2023-06-26 (V3 API)
+Code has been once again been updated to handle Frigidaire's new app, now on the V3 API. This new app was released in June 2023.
+
+All that is needed to get started is a username, password, and a serial number. Ensure your devices show up in the new app before attempting to use this updated plugin.
 
 ## Example config.json:
-### Minimum / Auto Discovery
 	"platforms": [
 		{
 			"platform": "Frigidaire",
+			"applianceSerial": "94126327",
 			"username": "joe@gmail.com",
-			"password": "Password1",
-		}
+			"password": "Password1"
+    }		
 	]
+## New feature: refresh token caching
+There is a new optional feature available in the backend <i>frigidaire</i> module that caches the refresh token, resulting in a slightly faster startup. It also helps reduce network traffic (by an albeit tiny amount).
 
-### Optional
-	"platforms": [
-		{
-			"platform": "Frigidaire",
-			"username": "joe@gmail.com",
-			"password": "Password1",
-			"deviceId": "O2-w1yjkjewjQt2J_AjaAaeSZZlmTQ501ahP" 
-		}
-	]
-
-* ```deviceId``` - Manually set the DeviceId. Can be anything you want. Otherwise is randomly generated every time homebridge is started
-
+To enable this option, add `"cacheRefreshToken": true` to the config.json, ie
+```
+{
+	"platform": "Frigidaire",
+	"applianceSerial": "94126327",
+	"username": "joe@gmail.com",
+	"password": "Password1",
+	"cacheRefreshToken": true
+}
+```
+The <b>homebridge config directory</b> will be used as the cache path, so ensure it is writable by the process that's running homebridge.
 
 ## How to install
 
