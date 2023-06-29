@@ -158,6 +158,18 @@ FrigidaireAirConditionerAccessory.prototype = {
     });
   },
 
+  getFanState: function (callback) {
+    var self = this;
+    debug("getFanState: ", this.currentCoolingState);
+    this.AC.getCoolingState(self.applianceSn, function (err, result) {
+      if (err) return console.error(err);
+      self.fan
+        .getCharacteristic(Characteristic.On)
+        .updateValue(result);
+      debug("getFanState: ", result);
+      return callback(null, result);
+    });
+  },
 
   /* no way to set this with API
     setCurrentHeatingCoolingState: function(value, callback) {
@@ -376,7 +388,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       self.log("getFanSpeed: ", self.fanSpeed);
 
       if (oldfan != self.fanSpeed)
-        self.thermostatService
+        self.fan
           .getCharacteristic(Characteristic.RotationSpeed)
           .updateValue(self.fanSpeed);
 
@@ -396,7 +408,7 @@ FrigidaireAirConditionerAccessory.prototype = {
     if (this.fanSpeed == value)
       return callback(null);
 
-    self.thermostatService
+    self.fan
       .getCharacteristic(Characteristic.RotationSpeed)
       .updateValue(self.fanSpeed);
 
@@ -449,6 +461,7 @@ FrigidaireAirConditionerAccessory.prototype = {
         self.getFanSpeed(function () { });
         self.getCleanAir(function () { });
         self.getFilter(function () { });
+        self.getFanState(function () { });
     });
   },
 
@@ -496,6 +509,10 @@ FrigidaireAirConditionerAccessory.prototype = {
         //debug("Clean Air Switch skipped for " + this.name);
     //}
 
+    this.fan = new Service.Fan(this.name + " Fan");
+    this.fan
+        .getCharacteristic(Characteristic.On)
+        .on('get', this.getFanState.bind(this))
 
     // Filter status attribute
     this.thermostatService
@@ -532,7 +549,7 @@ FrigidaireAirConditionerAccessory.prototype = {
       .on('get', this.getTemperatureDisplayUnits.bind(this))
       .on('set', this.setTemperatureDisplayUnits.bind(this));
 
-    this.thermostatService
+    this.fan
       .addCharacteristic(Characteristic.RotationSpeed)
       .on('get', this.getFanSpeed.bind(this))
       .on('set', this.setFanSpeed.bind(this));
@@ -545,7 +562,7 @@ FrigidaireAirConditionerAccessory.prototype = {
 
     //if (this.AC.hasAttribute(this.applianceSn, this.AC.CLEANAIR)) {
     //if (this.cleanAirEnable) {
-        return [this.informationService, this.thermostatService, this.cleanAirSwitch, this.filterStatus];
+        return [this.informationService, this.thermostatService, this.cleanAirSwitch, this.filterStatus, this.fan];
     //} else {
         //return [this.informationService, this.thermostatService];
     //}
